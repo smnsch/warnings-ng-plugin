@@ -199,6 +199,18 @@ public class AnalysisResult extends PageObject {
     }
 
     /**
+     * Opens the analysis details page, selects the tab {@link Tab#FILES} and returns the {@link PageObject} of the
+     * files table.
+     *
+     * @return page object of the types table.
+     */
+    public PackagesDetailsTable openPackagesTable() {
+        openTab(Tab.PACKAGES);
+
+        WebElement packagesTab = find(By.id("packageNameContent"));
+        return new PackagesDetailsTable(packagesTab, this);
+    }
+    /**
      * Opens a link on the page leading to another page.
      *
      * @param element

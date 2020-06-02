@@ -2,6 +2,7 @@ package io.jenkins.plugins.analysis.warnings;
 
 import java.util.Collection;
 import java.util.List;
+import javax.print.attribute.standard.Severity;
 
 import org.junit.Test;
 
@@ -12,6 +13,7 @@ import org.jenkinsci.test.acceptance.po.FreeStyleJob;
 
 import io.jenkins.plugins.analysis.warnings.AnalysisResult.Tab;
 import io.jenkins.plugins.analysis.warnings.CategoriesDetailsTable.Header;
+import io.jenkins.plugins.analysis.warnings.AnalysisSummary.InfoType;
 
 import static io.jenkins.plugins.analysis.warnings.Assertions.*;
 
@@ -101,6 +103,74 @@ public class DetailsTabUiTest extends AbstractJUnitTest {
 
         resultPage.reload();
         assertThat(resultPage.getActiveTab()).isEqualTo(Tab.TYPES);
+    }
+//    recordIssues tools: [java(), javaDoc()], aggregatingResults: 'true', id: 'java', name: 'Java'
+//    recordIssues tool: errorProne()
+//    junit testResults: '**/target/*-reports/TEST-*.xml'
+//    recordIssues tools: [mavenConsole(),
+//    checkStyle(pattern: '**/target/checkstyle-result.xml'),
+//    spotBugs(pattern: '**/target/spotbugsXml.xml'),
+//    pmdParser(pattern: '**/target/pmd.xml'),
+//    cpd(pattern: '**/target/cpd.xml'),
+//    taskScanner(highTags:'FIXME', normalTags:'TODO', includePattern: '**/*.java', excludePattern: 'target/**/*,**/TaskScannerTest.java')]
+
+    /**
+     * When switching details-tab and the page is being reloaded, the previously selected tab should be memorized and
+     * still be active.
+     */
+    @Test
+    public void shouldDoSomething() {
+        FreeStyleJob job = createFreeStyleJob("cpd1Warning.xml");
+        job.addPublisher(IssuesRecorder.class, recorder -> recorder.setToolWithPattern("CPD", "**/*.xml"));
+        job.save();
+
+        Build build = job.startBuild().waitUntilFinished();
+        build.open();
+
+        AnalysisSummary cpd = new AnalysisSummary(build, "cpd");
+
+        AnalysisResult cpdDetails = cpd.openOverallResult();
+
+        IssuesDetailsTable issuesDetailsTable = cpdDetails.openIssuesTable();
+
+        DryIssuesTableRow firstRow = issuesDetailsTable.getRowAs(0, DryIssuesTableRow.class);
+        assertThat(firstRow.getSeverity()).isEqualTo("Normal");
+        assertThat(firstRow.getAge()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldTest() {
+        FreeStyleJob job = createFreeStyleJob("findbugs-severities.xml");
+        job.addPublisher(IssuesRecorder.class, recorder -> recorder.setToolWithPattern("FindBugs", "**/*.xml"));
+        job.save();
+
+        Build build = job.startBuild().waitUntilFinished();
+        build.open();
+
+        AnalysisSummary findbugs = new AnalysisSummary(build, "findbugs");
+        Assertions.assertThat(findbugs).isDisplayed();
+        AnalysisResult findBugsDetails = findbugs.openOverallResult();
+
+        Collection<Tab> tabs = findBugsDetails.getAvailableTabs();
+        assertThat(tabs).contains(Tab.PACKAGES, Tab.FILES, Tab.ISSUES, Tab.TYPES, Tab.CATEGORIES);
+
+        PackagesDetailsTable packagesDetailsTable = findBugsDetails.openPackagesTable();
+        assertThat(packagesDetailsTable.getTotal()).isEqualTo(6);
+
+        List<GenericTableRow> packageRows =  packagesDetailsTable.getTableRows();
+        List<String> headers =  packagesDetailsTable.getHeaders();
+
+        FilesDetailsTable filesDetailsTable = findBugsDetails.openFilesTable();
+        assertThat(filesDetailsTable.getTotal()).isEqualTo(9);
+
+        CategoriesDetailsTable categoriesDetailsTable = findBugsDetails.openCategoriesTable();
+        assertThat(categoriesDetailsTable.getTotal()).isEqualTo(3);
+
+        TypesDetailsTable typesDetailsTable = findBugsDetails.openTypesTable();
+        assertThat(typesDetailsTable.getTotal()).isEqualTo(6);
+
+        IssuesDetailsTable issuesDetailsTable = findBugsDetails.openIssuesTable();
+        assertThat(issuesDetailsTable.getTotal()).isEqualTo(12);
     }
 
     /**
