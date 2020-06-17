@@ -8,13 +8,20 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import jenkins.benchmark.jmh.BenchmarkFinder;
 
-
+/**
+ * Runner for all Benchmark Tests annotated with @Benchmark inside @JmhBenchmark annotated classes.
+ */
 public class BenchmarkRunner {
+    /**
+     * Sets up and runs all performance benchmark tests and creates result file.
+     */
     @Test
     public void runJmhBenchmarks() throws Exception {
         ChainedOptionsBuilder options = new OptionsBuilder()
                 .mode(Mode.AverageTime)
                 .forks(2)
+                .measurementIterations(5)
+                .warmupIterations(2)
                 .result("jmh-report.json");
 
         // Automatically detect benchmark classes annotated with @JmhBenchmark
